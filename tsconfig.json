@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "declaration": true,
+    "module": "CommonJS"
+  },
+}
