@@ -1,6 +1,6 @@
 {
   "name": "ns-ksuid",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Generate namespaced KSUIDs",
   "main": "dist/index.js",
   "module": "commonjs",
