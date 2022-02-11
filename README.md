@@ -2,7 +2,39 @@
 
 A Node.js library to create namespaced KSUIDs (K-Sortable Unique IDentifier)
 
-Based on [`ksuid`](https://www.npmjs.com/package/ksuid) library
+IDs generated with this library look very similar Stripe uses:
+
+```
+payment_24yPGRexFPFVcmtJGbPIGTuwvq4
+payment_24yPGNvV6QG8CqzNiOpnP8GwlDE
+payment_24yPGN7nlhAdrPpoiVdAGNXMlPC
+payment_24yPGOtwmGam4FcrvZzfml4KIIn
+payment_24yPGRMQzcPNz4X67c47FbjFuym
+payment_24yPGPFb3nZu8DOdMhOw65jb3Id
+payment_24yPGPn3On5DnMZ04YN6k4j03nG
+payment_24yPGOWUOtfJK3fFuZ73DoVEm7X
+payment_24yPGQ3OZCrYsMt3UHbzpw2tNSh
+payment_24yPGOtnWpDeoGwRSfEsnlFqFRu
+payment_24yPGOOOPa2wGK6lKo1ch3RB2dz
+payment_24yPGMSFhsm7B5Ywb6LAjXbuLFr
+payment_24yPGOwAaCgedKLnnsM3A4ENv5t
+payment_24yPGNnIkkrOmhNRife6VaNSYz2
+payment_24yPGQqwk2GgTvBZgALCWTrFd1h
+```
+
+Each ID consist from three parts:
+1. Namespace (`payment` in this example)
+2. Timestamp (4 bytes)
+3. Random payload (16 bytes)
+
+Timestamp and payload are concenated and encoded as a base62 string. This string is also known as "KSUID" (K-Sortable Unique IDentifier).
+
+## Benefits
+
+* Thanks to namespace you instantly know which kind of ID it is – no more guesswork
+* Namespace helps spotting ID from the wall of text, for example from logs and API responses
+* Timestamp makes sure IDs are sortable
+* This library is strongly typed 💪
 
 ## Installation
 
@@ -23,14 +55,14 @@ import ID from 'ns-ksuid'
 You can create a new instance synchronously:
 
 ```typescript
-const idFromSync: NS_KSUID<'user'> = ID.randomSync('user')
+const idFromSync: ID<'user'> = ID.randomSync('user')
 // user_24ydbcZSMKu7w4Oj2hbFUOWChX7
 ```
 
 Or asynchronously:
 
 ```typescript
-const idFromAsync: NS_KSUID<'page'> = await ID.random('page')
+const idFromAsync: ID<'page'> = await ID.random('page')
 // page_24ydfG6C0bNQ96giyrLlhIQf4vb
 ```
 
@@ -47,33 +79,34 @@ Or you can compose it using a timestamp and a 16-byte payload:
 import { randomBytes } from 'crypto'
 const yesterdayInMs = Date.now() - 86400 * 1000
 const payload = randomBytes(16)
-const yesterdayKSUID = ID.fromParts('date', yesterdayInMs, payload)
+const yesterdayId = ID.fromParts('date', yesterdayInMs, payload)
 ```
 
-You can parse a valid string-encoded KSUID:
+You can parse a valid string-encoded ID:
 
 ```typescript
-const id = ID.parse('user_aWgEPTl1tmebfsQzFP4bxwgy80V')
+const id: ID<'user'> = ID.parse('user_aWgEPTl1tmebfsQzFP4bxwgy80V')
 ```
 
-Finally, you can create a KSUID from a 20-byte buffer:
+Finally, you can create ID from a namespace and 20-byte buffer:
 
 ```typescript
-const fromBuffer = new ID(buffer)
+const id: ID<'article'> = new ID('article', buffer)
+// article_24yPdjC5sbYCzDiLoprjRvYbxse
 ```
 
 ### Properties
 
-Once the KSUID has been created, use it:
+Once the ID has been created, you can access its properties:
 
-```typescript
-id.namespace // Namespace (eg. "user")
-id.string // Stringify NS_KSUID object (eg. "user_aWgEPTl1tmebfsQzFP4bxwgy80V")
-id.raw // The KSUID as a 20-byte buffer (doesn't contain namespace!)
-id.date // The timestamp portion of the KSUID, as a `Date` object
-id.timestamp // The raw timestamp portion of the KSUID, as a number
-id.payload // A Buffer containing the 16-byte payload of the KSUID (typically a random value)
-```
+| field       | description                                                                                                                            |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `date`      | Timestamp of the ID as a `Date` object                                                                                                 |
+| `namespace` | Namespace (e.g. `user`)                                                                                                                |
+| `payload`   | Random payload of the ID as a `Buffer` object                                                                                          |
+| `raw`       | 20-byte buffer representing ID. Does not include namespace. You might want to use this for example on your database.                   |
+| `string`    | Stringified ID (e.g. `user_aWgEPTl1tmebfsQzFP4bxwgy80V`). You might want to use this for example on API responses of your application. |
+| `timestamp` | Timestamp of the ID in numeric format                                                                                                  |
 
 ### Comparisons
 

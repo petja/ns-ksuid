@@ -21,6 +21,10 @@ export default class NS_KSUID<NS extends string = string> {
     return `${this.namespace}_${this.ksuid.string}` as IdString<NS>
   }
 
+  toString() {
+    return this.string
+  }
+
   get raw(): Readonly<Buffer> {
     return this.ksuid.raw
   }
