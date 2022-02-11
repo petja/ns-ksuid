@@ -23,20 +23,22 @@ import ID from 'ns-ksuid'
 You can create a new instance synchronously:
 
 ```typescript
-const idFromSync = ID.randomSync('user')
+const idFromSync: NS_KSUID<'user'> = ID.randomSync('user')
+// user_24ydbcZSMKu7w4Oj2hbFUOWChX7
 ```
 
 Or asynchronously:
 
 ```typescript
-const idFromAsync = await ID.random('user')
+const idFromAsync: NS_KSUID<'page'> = await ID.random('page')
+// page_24ydfG6C0bNQ96giyrLlhIQf4vb
 ```
 
 You can also specify a specific time, either in milliseconds or as a `Date` object:
 
 ```typescript
 const idFromDate = ID.randomSync('user', new Date('2022-02-11T16:53:50Z'))
-const idFromMillisecondsAsync = await ID.random(1644598430000)
+const idFromMillisecondsAsync = await ID.random('vehicle', 1644598430000)
 ```
 
 Or you can compose it using a timestamp and a 16-byte payload:
@@ -45,7 +47,7 @@ Or you can compose it using a timestamp and a 16-byte payload:
 import { randomBytes } from 'crypto'
 const yesterdayInMs = Date.now() - 86400 * 1000
 const payload = randomBytes(16)
-const yesterdayKSUID = ID.fromParts(yesterdayInMs, payload)
+const yesterdayKSUID = ID.fromParts('date', yesterdayInMs, payload)
 ```
 
 You can parse a valid string-encoded KSUID:
