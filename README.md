@@ -1,6 +1,10 @@
 # ns-ksuid
 
+![npm](https://img.shields.io/npm/v/ns-ksuid)
+
 A Node.js library to create namespaced KSUIDs (K-Sortable Unique IDentifier)
+
+## What?
 
 IDs generated with this library look very similar Stripe uses:
 
@@ -29,11 +33,10 @@ Each ID consist from three parts:
 
 Timestamp and payload are concenated and encoded as a base62 string. This string is also known as "KSUID" (K-Sortable Unique IDentifier).
 
-## Benefits
+### Benefits
 
-* Thanks to namespace you instantly know which kind of ID it is – no more guesswork
-* Namespace helps spotting ID from the wall of text, for example from logs and API responses
-* Timestamp makes sure IDs are sortable
+* Namespace helps spotting ID from the wall of text, for example from logs or API responses. Even better, you instantly know what kind of ID it is.
+* Timestamp makes IDs sortable
 * This library is strongly typed 💪
 
 ## Installation
@@ -47,7 +50,7 @@ npm add ns-ksuid
 Require the module:
 
 ```typescript
-import ID from 'ns-ksuid'
+import { Id } from 'ns-ksuid'
 ```
 
 ### Creation
@@ -55,22 +58,22 @@ import ID from 'ns-ksuid'
 You can create a new instance synchronously:
 
 ```typescript
-const idFromSync: ID<'user'> = ID.randomSync('user')
-// user_24ydbcZSMKu7w4Oj2hbFUOWChX7
+const idFromSync: Id<'user'> = Id.randomSync('user')
+idFromSync.toString() // user_24ydbcZSMKu7w4Oj2hbFUOWChX7
 ```
 
 Or asynchronously:
 
 ```typescript
-const idFromAsync: ID<'page'> = await ID.random('page')
-// page_24ydfG6C0bNQ96giyrLlhIQf4vb
+const idFromAsync: Id<'page'> = await Id.random('page')
+idFromAsync.toString() // page_24ydfG6C0bNQ96giyrLlhIQf4vb
 ```
 
 You can also specify a specific time, either in milliseconds or as a `Date` object:
 
 ```typescript
-const idFromDate = ID.randomSync('user', new Date('2022-02-11T16:53:50Z'))
-const idFromMillisecondsAsync = await ID.random('vehicle', 1644598430000)
+const idFromDate = Id.randomSync('user', new Date('2022-02-11T16:53:50Z'))
+const idFromMillisecondsAsync = await Id.random('vehicle', 1644598430000)
 ```
 
 Or you can compose it using a timestamp and a 16-byte payload:
@@ -79,20 +82,20 @@ Or you can compose it using a timestamp and a 16-byte payload:
 import { randomBytes } from 'crypto'
 const yesterdayInMs = Date.now() - 86400 * 1000
 const payload = randomBytes(16)
-const yesterdayId = ID.fromParts('date', yesterdayInMs, payload)
+const yesterdayId = Id.fromParts('date', yesterdayInMs, payload)
 ```
 
 You can parse a valid string-encoded ID:
 
 ```typescript
-const id: ID<'user'> = ID.parse('user_aWgEPTl1tmebfsQzFP4bxwgy80V')
+const id: Id<'user'> = Id.parse('user_aWgEPTl1tmebfsQzFP4bxwgy80V')
 ```
 
 Finally, you can create ID from a namespace and 20-byte buffer:
 
 ```typescript
-const id: ID<'article'> = new ID('article', buffer)
-// article_24yPdjC5sbYCzDiLoprjRvYbxse
+const id: Id<'article'> = new Id('article', buffer)
+id.toString() // article_24yPdjC5sbYCzDiLoprjRvYbxse
 ```
 
 ### Properties
@@ -110,9 +113,11 @@ Once the ID has been created, you can access its properties:
 
 ### Comparisons
 
-You can compare KSUIDs:
+You can compare IDs:
 
-```js
+```typescript
+// If compared IDs have different namespace, an error will be thrown!
+
 todayId.compare(yesterdayId) // 1
 todayId.compare(todayId) // 0
 yesterdayId.compare(todayId) // -1
@@ -120,15 +125,30 @@ yesterdayId.compare(todayId) // -1
 
 And check for equality:
 
-```js
+```typescript
+// If compared IDs have different namespace, an error will be thrown!
+
 todayId.equals(todayId) // true
 todayId.equals(yesterdayId) // false
 ```
 
-### Validation
+If you expect string formatted ID to have certain namespace, we have you covered!
 
-You can check whether a particular buffer is a valid KSUID:
+```typescript
+const isValid: boolean = Id.validateIdString('user', 'user_aWgEPTl1tmebfsQzFP4bxwgy80V');
 
-```js
-ID.isValid(buffer) // Boolean
+Id.throwIfNotValidIdString('person', 'user_aWgEPTl1tmebfsQzFP4bxwgy80V') // Will throw TypeError
+```
+
+## Strongly typed
+
+This library is strongly typed 💪 
+
+```typescript
+// These examples will throw a TypeScript error
+
+const id1: Id<'article'> = new Id('user', buffer)
+const id2: Id<'article'> = Id.parse('user_aWgEPTl1tmebfsQzFP4bxwgy80V')
+
+const idStr: IdString<'person'> = 'vehicle_24yPdjC5sbYCzDiLoprjRvYbxse'
 ```
