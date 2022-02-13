@@ -1,99 +1,107 @@
 import KSUID from 'ksuid'
 
-export type IdString<NS extends string> = `${NS}_${string}`
+export type Id<NS extends string = string> = `${NS}_${string}`
 
-export class Id<NS extends string = string> {
-  readonly namespace: NS
-  readonly ksuid: KSUID
+function split<NS extends string>(id: Id<NS>): [NS, KSUID] {
+  const [namespace, ksuidString] = id.split('_')
 
-  constructor(namespace: NS, ksuid: KSUID) {
-    if (!Id.isValidNamespace(namespace)) {
-      throw new TypeError(
-        `ID namespace must be underscore letters a-z and have length between 1 and 10. Received: "${namespace}"`
-      )
-    }
+  validateNamespace(namespace, true)
 
-    this.namespace = namespace
-    this.ksuid = ksuid
+  return [namespace as NS, KSUID.parse(ksuidString)]
+}
+
+export function validateNamespace(namespace: string, throwIfNotValid: boolean = false): boolean {
+  const isValid = /^[a-z]{1,10}$/.test(namespace)
+
+  if (!isValid && throwIfNotValid) {
+    throw new TypeError(
+      `ID namespace must be underscore letters a-z and have length between 1 and 10. Received: "${namespace}"`
+    )
   }
 
-  get string(): IdString<NS> {
-    return `${this.namespace}_${this.ksuid.string}` as IdString<NS>
-  }
+  return isValid
+}
 
-  toString() {
-    return this.string
-  }
-
-  get raw(): Readonly<Buffer> {
-    return this.ksuid.raw
-  }
-
-  get date(): Readonly<Date> {
-    return this.ksuid.date
-  }
-
-  get timestamp(): Readonly<number> {
-    return this.ksuid.timestamp
-  }
-
-  get payload(): Readonly<Buffer> {
-    return this.ksuid.payload
-  }
-
-  compare(other: Id<NS>) {
-    if (this.namespace !== other.namespace) throw new TypeError('Cannot compare IDs from different namespaces')
-
-    return this.ksuid.compare(other.ksuid)
-  }
-
-  equals(other: Id<NS>) {
-    return this.compare(other) === 0
-  }
-
-  static randomSync<NS extends string>(namespace: NS, timeInMs?: number | Date): Id<NS> {
-    return new Id<NS>(namespace, KSUID.randomSync(timeInMs as any))
-  }
-
-  static async random<NS extends string>(namespace: NS, timeInMs?: Date | number): Promise<Id<NS>> {
-    return Id.randomSync(namespace, timeInMs)
-  }
-
-  static parse<NS extends string>(str: IdString<NS>): Id<NS> {
-    const splits = str.split('_')
-    return new Id<NS>(splits[0] as NS, KSUID.parse(splits[1]))
-  }
-
-  static fromParts<NS extends string>(namespace: NS, timeInMs: number, payload: Buffer): Id<NS> {
-    return new Id<NS>(namespace, KSUID.fromParts(timeInMs, payload))
-  }
-
-  static isValidNamespace<NS extends string>(namespace: NS): boolean {
-    return /^[a-z]{1,10}$/.test(namespace)
-  }
-
-  static validateIdString<NS extends string>(namespace: NS, str: string): str is IdString<NS> {
-    const parsed = Id.parse(str as any)
-    return parsed.namespace === namespace
-  }
-
-  static throwIfNotValidIdString<NS extends string>(namespace: NS, str: string): void {
-    const isValid = Id.validateIdString(namespace, str)
-
-    if (!isValid) {
-      throw new TypeError(`Invalid ID string "${str}". Expected namespace "${namespace}".`)
-    }
-  }
-
-  static isValid(buffer: Buffer) {
-    return KSUID.isValid(buffer)
+export function isValid(id: Id): boolean {
+  try {
+    split(id)
+    return true
+  } catch {
+    return false
   }
 }
 
-export function* IdFactory<NS extends string>(namespace: NS) {
+export function create<NS extends string>(namespace: NS, date?: Date): Id<NS> {
+  validateNamespace(namespace, true)
+
+  const ksuid = date ? KSUID.randomSync(date) : KSUID.randomSync()
+  return `${namespace}_${ksuid.string}`
+}
+
+export function getDate(id: Id): Date {
+  const [_, ksuid] = split(id)
+  return ksuid.date
+}
+
+export function toBuffer(id: Id): Buffer {
+  const [_, ksuid] = split(id)
+  return ksuid.raw
+}
+
+export function fromBuffer<NS extends string>(buffer: Buffer, namespace: NS): Id<NS> {
+  validateNamespace(namespace, true)
+
+  const ksuid = new KSUID(buffer)
+  return `${namespace}_${ksuid.string}`
+}
+
+export function getPayload(id: Id): Buffer {
+  const [_, ksuid] = split(id)
+  return ksuid.payload
+}
+
+export function getNamespace<NS extends string>(id: Id<NS>): NS {
+  const [namespace] = split(id)
+  return namespace as NS
+}
+
+export function getKSUID<NS extends string>(id: Id<NS>): KSUID {
+  const [_, ksuid] = split(id)
+  return ksuid
+}
+
+export function isNamespace<NS extends string>(id: Id, namespace: NS, throwIfNotMatch: boolean = false): id is Id<NS> {
+  const isMatch = getNamespace(id) === namespace
+
+  if (!isMatch && throwIfNotMatch) {
+    throw new TypeError(`Expected ID to have namespace "${namespace}" but received ${getNamespace(id)}`)
+  }
+
+  return isMatch
+}
+
+export function isBefore<NS extends string>(id1: Id<NS>, id2: Id<NS>): boolean {
+  const [ns1, ksuid1] = split(id1)
+  const [ns2, ksuid2] = split(id2)
+
+  if (ns1 !== ns2) {
+    throw new TypeError(`IDs must have same namespace but received "${ns1}" for left-hand and "${ns2}" for right-hand`)
+  }
+
+  return ksuid1.compare(ksuid2) === -1
+}
+
+export function isAfter<NS extends string>(id1: Id<NS>, id2: Id<NS>): boolean {
+  return isBefore(id2, id1)
+}
+
+export function fromParts<NS extends string>(namespace: NS, date: Date, payload: Buffer): Id<NS> {
+  const ksuid = KSUID.fromParts(date.getTime(), payload)
+  return `${namespace}_${ksuid.string}`
+}
+
+export function* factory<NS extends string>(namespace: NS) {
   while (true) {
-    yield Id.randomSync(namespace)
+    yield create(namespace)
   }
 }
-
-export default Id
